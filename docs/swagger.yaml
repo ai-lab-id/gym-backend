@@ -1,0 +1,975 @@
+openapi: 3.0.0
+info:
+  title: Gym Plus API
+  description: Comprehensive RESTful API documentation for Gym Plus Management System.
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000
+    description: Local development server
+
+paths:
+  # ─── AUTH ───
+  /auth/login:
+    post:
+      summary: Admin Login
+      description: Authenticates administrative users.
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  example: admin
+                password:
+                  type: string
+                  example: password123
+      responses:
+        '200':
+          description: Successfully authenticated.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 1
+                      username:
+                        type: string
+                        example: admin
+                      role:
+                        type: string
+                        example: Superadmin
+        '401':
+          description: Invalid credentials.
+        '400':
+          description: Bad request (missing fields).
+
+  # ─── DASHBOARD ───
+  /dashboard:
+    get:
+      summary: Get Dashboard Metrics
+      description: Returns main statistics, membership status counts, and list of recent members.
+      security:
+        - bearerAuth: []
+      tags:
+        - Dashboard
+      responses:
+        '200':
+          description: Dashboard data retrieved successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stats:
+                    type: object
+                    properties:
+                      totalMembers:
+                        type: integer
+                        example: 120
+                      activeMembers:
+                        type: integer
+                        example: 95
+                      todayCheckins:
+                        type: integer
+                        example: 14
+                      monthlyRevenue:
+                        type: number
+                        example: 4500000
+                  membershipStatus:
+                    type: object
+                    properties:
+                      active:
+                        type: integer
+                        example: 95
+                      expired:
+                        type: integer
+                        example: 20
+                      pending:
+                        type: integer
+                        example: 5
+                  recentMembers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        member_id:
+                          type: string
+                          example: MBR1001
+                        first_name:
+                          type: string
+                          example: John
+                        last_name:
+                          type: string
+                          example: Doe
+                        membership_type:
+                          type: string
+                          example: Monthly Gold
+                        join_date:
+                          type: string
+                          format: date
+                          example: "2026-05-01"
+
+  # ─── MEMBERS ───
+  /members:
+    get:
+      summary: List all members
+      description: Retrieves a list of all gym members along with their current active plan type and status.
+      security:
+        - bearerAuth: []
+      tags:
+        - Members
+      responses:
+        '200':
+          description: List of members retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Member'
+    post:
+      summary: Add a new member
+      description: Registers a new member into the system. Generates an auto-incremented ID format `MBR1xxx`.
+      security:
+        - bearerAuth: []
+      tags:
+        - Members
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - first_name
+                - phone
+              properties:
+                first_name:
+                  type: string
+                  example: John
+                last_name:
+                  type: string
+                  example: Doe
+                phone:
+                  type: string
+                  example: "08123456789"
+                email:
+                  type: string
+                  example: john.doe@example.com
+                gender:
+                  type: string
+                  enum: [Male, Female]
+                  example: Male
+                address:
+                  type: string
+                  example: "123 Gym Street"
+      responses:
+        '200':
+          description: Member successfully registered.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  member_id:
+                    type: string
+                    example: MBR1002
+        '400':
+          description: Validation error.
+
+  /members/{id}:
+    get:
+      summary: Retrieve single member details
+      description: Looks up a single member by their unique member ID.
+      security:
+        - bearerAuth: []
+      tags:
+        - Members
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: MBR1001
+      responses:
+        '200':
+          description: Member found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberDetail'
+        '404':
+          description: Member not found.
+    put:
+      summary: Update member details
+      description: Updates personal information of an existing member.
+      security:
+        - bearerAuth: []
+      tags:
+        - Members
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: MBR1001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - first_name
+                - phone
+              properties:
+                first_name:
+                  type: string
+                  example: John
+                last_name:
+                  type: string
+                  example: Smith
+                phone:
+                  type: string
+                  example: "08123456789"
+                email:
+                  type: string
+                  example: john.smith@example.com
+                gender:
+                  type: string
+                  enum: [Male, Female]
+                  example: Male
+                address:
+                  type: string
+                  example: "456 Workout Ave"
+      responses:
+        '200':
+          description: Member successfully updated.
+        '400':
+          description: Validation error.
+    delete:
+      summary: Delete member
+      description: Permanently removes a member from the database.
+      security:
+        - bearerAuth: []
+      tags:
+        - Members
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: MBR1001
+      responses:
+        '200':
+          description: Member successfully deleted.
+
+  /members/{id}/fingerprint:
+    post:
+      summary: Register member fingerprint
+      description: Registers a fingerprint template for a specific gym member.
+      security:
+        - bearerAuth: []
+      tags:
+        - Members
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: MBR1001
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - fingerprint_template
+              properties:
+                fingerprint_template:
+                  type: string
+                  example: "0102030405060708090a0b0c0d0e0f"
+      responses:
+        '200':
+          description: Fingerprint registered successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Fingerprint registered successfully
+        '400':
+          description: Validation error or fingerprint_template is required.
+        '404':
+          description: Member not found.
+
+
+  # ─── MEMBERSHIPS ───
+  /memberships:
+    get:
+      summary: List all memberships
+      description: Retrieves all membership records across all gym members.
+      security:
+        - bearerAuth: []
+      tags:
+        - Memberships
+      responses:
+        '200':
+          description: Memberships list retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Membership'
+    post:
+      summary: Add a new membership
+      description: Activates a new membership plan for a member, auto-expiring previous active memberships and logging a cash payment transaction.
+      security:
+        - bearerAuth: []
+      tags:
+        - Memberships
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - member_id
+                - membership_type
+                - amount
+              properties:
+                member_id:
+                  type: string
+                  example: MBR1001
+                membership_type:
+                  type: string
+                  example: Monthly Gold
+                start_date:
+                  type: string
+                  format: date
+                  example: "2026-05-25"
+                end_date:
+                  type: string
+                  format: date
+                  example: "2026-06-25"
+                validity:
+                  type: integer
+                  description: Validity period in days.
+                  example: 30
+                amount:
+                  type: number
+                  example: 350000
+      responses:
+        '200':
+          description: Membership created and payment captured.
+        '400':
+          description: Validation error.
+
+  /memberships/{id}:
+    put:
+      summary: Update membership details
+      description: Updates the status or details of a membership record.
+      security:
+        - bearerAuth: []
+      tags:
+        - Memberships
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 12
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - membership_type
+                - amount
+                - status
+              properties:
+                membership_type:
+                  type: string
+                  example: Monthly Silver
+                start_date:
+                  type: string
+                  format: date
+                  example: "2026-05-25"
+                end_date:
+                  type: string
+                  format: date
+                  example: "2026-06-25"
+                validity:
+                  type: integer
+                  example: 30
+                amount:
+                  type: number
+                  example: 250000
+                status:
+                  type: string
+                  enum: [Active, Expired, Pending]
+                  example: Active
+      responses:
+        '200':
+          description: Membership successfully updated.
+    delete:
+      summary: Delete membership record
+      description: Deletes a membership transaction record.
+      security:
+        - bearerAuth: []
+      tags:
+        - Memberships
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 12
+      responses:
+        '200':
+          description: Membership successfully deleted.
+
+  # ─── TRAINERS ───
+  /trainers:
+    get:
+      summary: List all trainers
+      description: Retrieves a list of active trainers.
+      security:
+        - bearerAuth: []
+      tags:
+        - Trainers
+      responses:
+        '200':
+          description: Trainers retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trainer'
+    post:
+      summary: Add a new trainer
+      description: Registers a new personal trainer.
+      security:
+        - bearerAuth: []
+      tags:
+        - Trainers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  example: "Coach Alex"
+                specialization:
+                  type: string
+                  example: "Weightlifting & Diet"
+                phone:
+                  type: string
+                  example: "08123456780"
+                email:
+                  type: string
+                  example: alex@gymplus.com
+                experience:
+                  type: integer
+                  description: Years of experience.
+                  example: 5
+      responses:
+        '200':
+          description: Trainer added.
+        '400':
+          description: Validation error.
+
+  /trainers/{id}:
+    put:
+      summary: Update trainer details
+      description: Modifies information or status of a trainer.
+      security:
+        - bearerAuth: []
+      tags:
+        - Trainers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 3
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - status
+              properties:
+                name:
+                  type: string
+                  example: "Coach Alex"
+                specialization:
+                  type: string
+                  example: "Powerlifting"
+                phone:
+                  type: string
+                  example: "08123456780"
+                email:
+                  type: string
+                  example: alex@gymplus.com
+                experience:
+                  type: integer
+                  example: 6
+                status:
+                  type: string
+                  enum: [Active, Inactive]
+                  example: Active
+      responses:
+        '200':
+          description: Trainer updated.
+    delete:
+      summary: Delete trainer
+      description: Removes a trainer's record.
+      security:
+        - bearerAuth: []
+      tags:
+        - Trainers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 3
+      responses:
+        '200':
+          description: Trainer deleted.
+
+  # ─── ATTENDANCE ───
+  /attendance:
+    get:
+      summary: Get attendance history
+      description: Returns the 50 most recent check-in logs including member names.
+      tags:
+        - Attendance
+      responses:
+        '200':
+          description: Attendance log retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AttendanceLog'
+  /attendance/entry:
+    post:
+      summary: Check-in member
+      description: Records entry time for a member if they do not have an open entry today.
+      tags:
+        - Attendance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - member_id
+              properties:
+                member_id:
+                  type: string
+                  example: MBR1001
+      responses:
+        '200':
+          description: Entry marked successfully.
+        '400':
+          description: Member already checked in today or invalid ID.
+
+  /attendance/exit:
+    post:
+      summary: Check-out member
+      description: Records exit time for an currently checked-in member.
+      tags:
+        - Attendance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - member_id
+              properties:
+                member_id:
+                  type: string
+                  example: MBR1001
+      responses:
+        '200':
+          description: Exit marked successfully.
+        '400':
+          description: No active entry found for today.
+
+  /attendance/biometric:
+    post:
+      summary: Biometric attendance check-in/check-out
+      description: Logs a member's check-in or check-out using their fingerprint template.
+      tags:
+        - Attendance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - fingerprint_template
+              properties:
+                fingerprint_template:
+                  type: string
+                  example: "0102030405060708090a0b0c0d0e0f"
+      responses:
+        '200':
+          description: Biometric check-in or check-out logged successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  type:
+                    type: string
+                    enum: [check-in, check-out]
+                    example: check-in
+                  member_id:
+                    type: string
+                    example: MBR1001
+                  member_name:
+                    type: string
+                    example: John Doe
+                  message:
+                    type: string
+                    example: Check-in successful for John Doe
+        '400':
+          description: Membership is Inactive or Expired.
+        '404':
+          description: Fingerprint not registered or member not found.
+
+
+  # ─── PAYMENTS ───
+  /payments:
+    get:
+      summary: Get payment transactions
+      description: Returns list of payments and summary figures (totals, monthly revenue, pending revenue, pending count).
+      security:
+        - bearerAuth: []
+      tags:
+        - Payments
+      responses:
+        '200':
+          description: Payment lists and summary details.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  payments:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Payment'
+                  summary:
+                    type: object
+                    properties:
+                      total:
+                        type: number
+                        example: 25000000
+                      monthly:
+                        type: number
+                        example: 5000000
+                      pending:
+                        type: number
+                        example: 750000
+                      pendingCount:
+                        type: integer
+                        example: 3
+    post:
+      summary: Add a manual payment transaction
+      description: Logs a new payment entry in the system.
+      security:
+        - bearerAuth: []
+      tags:
+        - Payments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - member_id
+                - amount
+                - status
+              properties:
+                member_id:
+                  type: string
+                  example: MBR1001
+                member_name:
+                  type: string
+                  example: "John Doe"
+                plan:
+                  type: string
+                  example: "Monthly Gold"
+                amount:
+                  type: number
+                  example: 350000
+                status:
+                  type: string
+                  enum: [Paid, Pending]
+                  example: Paid
+                method:
+                  type: string
+                  enum: [Cash, Transfer]
+                  example: Transfer
+      responses:
+        '200':
+          description: Payment logged.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  payment_id:
+                    type: string
+                    example: PAY1024
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Member:
+      type: object
+      properties:
+        member_id:
+          type: string
+          example: MBR1001
+        first_name:
+          type: string
+          example: John
+        last_name:
+          type: string
+          example: Doe
+        phone:
+          type: string
+          example: "08123456789"
+        email:
+          type: string
+          example: john.doe@example.com
+        gender:
+          type: string
+          example: Male
+        address:
+          type: string
+          example: "123 Gym Street"
+        join_date:
+          type: string
+          format: date
+          example: "2026-05-01"
+        plan:
+          type: string
+          nullable: true
+          example: Monthly Gold
+        status:
+          type: string
+          nullable: true
+          example: Active
+
+    MemberDetail:
+      type: object
+      properties:
+        member_id:
+          type: string
+          example: MBR1001
+        first_name:
+          type: string
+          example: John
+        last_name:
+          type: string
+          example: Doe
+        phone:
+          type: string
+          example: "08123456789"
+        email:
+          type: string
+          example: john.doe@example.com
+
+    Membership:
+      type: object
+      properties:
+        membership_id:
+          type: integer
+          example: 12
+        member_id:
+          type: string
+          example: MBR1001
+        member_name:
+          type: string
+          example: John Doe
+        membership_type:
+          type: string
+          example: Monthly Gold
+        start_date:
+          type: string
+          format: date
+          example: "2026-05-25"
+        end_date:
+          type: string
+          format: date
+          example: "2026-06-25"
+        validity:
+          type: integer
+          example: 30
+        amount:
+          type: number
+          example: 350000
+        status:
+          type: string
+          example: Active
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-05-25T04:10:00.000Z"
+
+    Trainer:
+      type: object
+      properties:
+        trainer_id:
+          type: integer
+          example: 3
+        name:
+          type: string
+          example: "Coach Alex"
+        specialization:
+          type: string
+          example: "Weightlifting"
+        phone:
+          type: string
+          example: "08123456780"
+        email:
+          type: string
+          example: alex@gymplus.com
+        experience:
+          type: integer
+          example: 5
+        status:
+          type: string
+          example: Active
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-05-25T04:10:00.000Z"
+
+    AttendanceLog:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 105
+        member_id:
+          type: string
+          example: MBR1001
+        member_name:
+          type: string
+          example: John Doe
+        entry_time:
+          type: string
+          format: date-time
+          example: "2026-05-25T08:30:00.000Z"
+        exit_time:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-05-25T10:00:00.000Z"
+        date:
+          type: string
+          format: date
+          example: "2026-05-25"
+
+    Payment:
+      type: object
+      properties:
+        payment_id:
+          type: string
+          example: PAY1001
+        member_id:
+          type: string
+          example: MBR1001
+        member_name:
+          type: string
+          example: John Doe
+        plan:
+          type: string
+          example: Monthly Gold
+        amount:
+          type: number
+          example: 350000
+        payment_date:
+          type: string
+          format: date
+          example: "2026-05-25"
+        status:
+          type: string
+          example: Paid
+        method:
+          type: string
+          example: Cash
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-05-25T04:10:00.000Z"
